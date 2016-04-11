@@ -17,19 +17,16 @@
  * 0 meaning the value is already set in the group
  * size meaning that all elements can take that value
  */
+import java.awt.Point;
 
 public class TGroupInfo {
     private int list[];      
-    private int lowestvalue = 0;  //stores what the smallest possiblity is (except set items -> 0)
-    private int lowestindex = 0;  //stores which value that refers to
     private int size;
 	
     public TGroupInfo(int size){
 	list = new int[size];
 	for (int n = 0; n<size;n++)
 	    list[n] = size;    //at the beginning each element has the possiblity to be anything
-	lowestvalue = size;
-	lowestindex = 0;
 	this.size = size;
     }
 	
@@ -39,22 +36,6 @@ public class TGroupInfo {
 	pos = pos-1; //correct index
 	if (list[pos]<1) return 0;
 	list[pos]--;
-        /* reset lowests */
-	if ((list[pos]>0)&&(list[pos]<lowestvalue)){
-	    lowestindex = pos;
-	    lowestvalue = list[pos];
-	}
-	/* if the new possibility is zero find new if value used to have the lowest possibility
-	 * ignore 0s */
-	if ((list[pos]==0)&&(lowestindex==pos)){
-	    lowestvalue = size;
-	    for (int n = 0; n<size; n++){
-		if ((list[n]<lowestvalue)&&(list[n]!=0)){
-		    lowestvalue = list[n];
-		    lowestindex = n;
-		}
-	    }
-	}
 	return list[pos];
     }
 	
@@ -63,44 +44,38 @@ public class TGroupInfo {
     public void set(int value, int possibility){
 	value = value-1; //correct index;
 	list[value] = possibility;
-	/* reset mins */
-	/* if value had and does not anymore have the minimum possibility */
-	if ((lowestindex == value)&&((possibility == 0)||(possibility > lowestvalue))){
-	    /* find new minposs when the reset was the old minpossibility */
-	    lowestvalue = size;
-	    for (int n = 0; n<size; n++){
-		if ((list[n]<lowestvalue)&&(list[n]!=0)){
-		    lowestvalue = list[n];
-		    lowestindex = n;
-		}
-	    }
-	} else
-	    /* reset value if pos is the new minpossibility */
-	    if ((list[value]>0)&&(list[value]<lowestvalue)){
-		lowestindex = value;
-		lowestvalue = list[value];
-	    }
     }
 	
     /* returns deepcopy of an object */
     public Object clone(){
 	TGroupInfo result = new TGroupInfo(size);
 	result.list = (int[])list.clone();
-	result.lowestindex = lowestindex;
-	result.lowestvalue = lowestvalue;
 	result.size = size;
 	return result;
     }
 	
-    /* returns lowest possibility */
-    public int getlowestpossibility(){
-	return this.lowestvalue;
+    /* returns whether objects are equivalent */
+    public boolean equals(TGroupInfo gi){
+	if (this.size != gi.size) return false;
+	for (int n=0;n<size;n++){
+	    if (list[n]!=gi.list[n]) return false;
+	}
+	return true;
     }
 	
-    /* returns which value has this lowest possibility */
-    public int getlowestindex(){
-	return this.lowestindex+1; //adjust index
+    /* returns lowest possibility (x), and its value (y)*/
+    public Point getlowestpossibility(){
+	int lowestvalue = size;
+	int lowestindex = 0;
+	for (int n = 0; n<size; n++){
+	    if ((list[n]<lowestvalue)&&(list[n]!=0)){
+		lowestvalue = list[n];
+		lowestindex = n;
+	    }
+	}
+	return new Point(lowestvalue,lowestindex+1);
     }
+	
 	
     /* returns the number of possibilites for a certain value */
     public int getpossibility(int value){
@@ -108,6 +83,5 @@ public class TGroupInfo {
     }
 	
 }
-
 
 

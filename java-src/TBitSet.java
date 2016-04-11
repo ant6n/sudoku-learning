@@ -16,7 +16,7 @@
 public class TBitSet {
     long flags[][]; 			//the actual data
     short cardinalities[][];  //stores how many bits are set in each flaglist
-    int bits[];               //internal bits-list, i.e. 00000001, 00000010, 00000100 ... used for bitoperations
+    long bits[];               //internal bits-list, i.e. 00000001, 00000010, 00000100 ... used for bitoperations
     int xsize, ysize;
   
     /* constructor */
@@ -32,8 +32,8 @@ public class TBitSet {
 	    }
 	}
 	/* make bits array */
-	int onebit = 1;
-	bits = new int[65];
+	long onebit = 1;
+	bits = new long[65];
 	bits[0] = 0;
 	for (int n=1; n<65; n++){
 	    bits[n] = onebit;
@@ -82,8 +82,20 @@ public class TBitSet {
 	return result;
     }
   
+    /* returns whether data of given object is equivalent */
+    public boolean equals(TBitSet bs){
+	if ((this.xsize != bs.xsize)
+	    ||(this.ysize != bs.ysize)) return false;
+	for (int x=0;x<xsize ;x++){
+	    for (int y=0;y<ysize;y++){
+		if ((this.cardinalities[x][y] != bs.cardinalities[x][y])
+		    ||(this.flags[x][y] != bs.flags[x][y])) return false;
+	    }
+	}
+	return true;
+    }
+  
 }
-
 
 
 

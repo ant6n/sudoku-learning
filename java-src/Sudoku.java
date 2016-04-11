@@ -7,10 +7,22 @@
  * added private classes 
  * - TCandidates (it doesnt have an extra file because its very intertwined with Sudoku)
  * - TCandidate (thats a tiny support class solely used by TCandidates)
+ * - Tgroupcandidate (used inside TCandidate)
+ *
+ * This algorithm uses backtracking to find the solution.
+ * It finds the element with the lowest possibilites 
+ * and it finds the value within all groups (block, row, column) so that the least
+ * number of elements can take that value.
+ * The algorithm decides then which of both ways lead to a decision with fewer possible
+ * candidates.
+ *
  */
 import java.util.*;
 import java.io.*;
 import java.awt.Point;
+
+
+
 
 class Sudoku {
     /*
@@ -30,14 +42,26 @@ class Sudoku {
      * all values are one
      */	
     TBitSet flags; 
+	
+	
+    /* Performance
+     * does not get compared using equal() */
+    int totalnext=0, totalbranch = 0, valuedecisions=0, elementdecisions=0;
+	
 
     /* stores how many how many elements in each row column and block
      * have the a value as a possibility, for each possible value
      */
     TGroupInfo blocks[], rows[], columns[];
 	
-    /* sotres where the last inserted element was */
-    int lastx, lasty;
+    /* sotres where the last inserted or delted element was
+     * this doesnt get compared using equal() */
+    Point lastinsert=null;
+    Point lastgroupinsert=null; 
+    /*this class doesnt take care of this membert, TCandidates can play around with it
+     * its stored as a point (grouptype,groupindex), where grouptype has the values
+     * of the constants defined in TCandidates
+     */
 
     /* stores how many elements are left to set */
     int left;
@@ -46,9 +70,12 @@ class Sudoku {
      * The solve() method should remove all the unknown characters ('x') in the
      * Grid and replace them with the numbers from 1-9 (for SIZE = 3) that satisfy the Sudoku
      * puzzle.
+     * returns how long it took in ms
      */
-    public void solve() {
-	next();
+    public long solve() {
+	long time = System.currentTimeMillis();
+	next();	
+	return System.currentTimeMillis() - time;
     }
 
     /* finds next element to insert and inserts it - and calls itself
@@ -60,38 +87,34 @@ class Sudoku {
 	    System.out.print("INVALID SUDOKU");
 	/* return true if there is no element to set */	
 	if (left == 0)return true;
-	/* debug pring progress */
-	if (left == 100){
-	    System.out.print("\nleft "+left);
-	}
+	/* perforamance */
+	this.totalnext++;		
 	/* create candidatelist */
 	TCandidates candidates = new TCandidates(this);
-	/* if the elementcout is 1, then value can only taken by one element in that group
+	/* if the elementcout is 1, then value can only be taken by one element in that group
 	 * - simply insert 
 	 * it is possible that we are pursuing a wrong possibility, so abort if we cant insert*/
 	if (candidates.getcount()==1){
-	    if (!this.insert(candidates.getcandidatex(0),candidates.getcandidatey(0),candidates.getvalue()))
+	    if (!this.insert(candidates.getcandidatex(0),candidates.getcandidatey(0),candidates.getvalue(0)))
 		return false;
-	    candidates = null; //I hope this frees the object
 	    return next();
 	}
 	/* here it gets mroe complicated
 	 * we have to insert more than one possibilities */
 	/* go through all candidates and try inserting them, use a deep copy */
-	//System.out.print("\nbranch at "+left+" with "+candidates.getcount()+" branches: ");
-	//for (int n=0;n<candidates.getcount();n++)System.out.print(" "+candidates.getinvprobability(n));
-	if (candidates.getinvprobability(0)==1){
-	    System.out.print("\nbranch at "+left+" with "+candidates.getcount()+" branches: ");
-	    for (int n=0;n<candidates.getcount();n++)System.out.print(" "+candidates.getinvprobability(n));	
-	}
-
+	totalbranch++;
 	for (int n=0;n<candidates.getcount();n++){
-	    Sudoku copy = (Sudoku)this.clone();
 	    /* try to insert element, and call next if succesful, return true if that was succesful */
-	    if (this.insert(candidates.getcandidatex(n),candidates.getcandidatey(n),candidates.getvalue()))
+            Sudoku copy = (Sudoku)clone();
+	    if (this.insert(candidates.getcandidatex(n),candidates.getcandidatey(n),candidates.getvalue(n))){
 		if (this.next()) return true;
-	    /* above line failed get the 'untainted' sudoku back */
-	    this.assign(copy);
+		/* above line failed get the 'untainted' sudoku back */
+		int tn = this.totalnext; int tb = this.totalbranch;
+		int e = this.elementdecisions; int v = this.valuedecisions;
+		this.assign(copy);
+		this.totalnext = tn; this.totalbranch = tb;
+		this.elementdecisions = e; this.valuedecisions = v;
+	    }
 	}
 	/* nothing worked, just return false */
 	return false;
@@ -113,6 +136,9 @@ class Sudoku {
 	}
 	/* 2nd - check whether the value we want to enter is in that elements possibilites */
 	if (!flags.get(xpos,ypos,value)){
+	    System.out.print("invalid assign!!");
+	    System.out.print("sudoku "+(isvalid()?"is valid":"is not valid")+"\n");
+	    System.out.print("sudoku "+(checkintegrity()?"is integer":"is not integer")+"\n");
 	    return false;
 	}
 	/* 3rd - check whether the element is the only candidate for another value
@@ -123,8 +149,9 @@ class Sudoku {
 	    if ((flags.get(xpos,ypos,n))&&(n!=value)){
 		if ((rows[ypos].getpossibility(n)==1)||
 		    (blocks[xytoblock(xpos,ypos)].getpossibility(n)==1)||
-		    (columns[xpos].getpossibility(n)==1)) 
+		    (columns[xpos].getpossibility(n)==1)){
 		    return false;
+		}
 	    }
 	}
 	/* everything ok - the data wont be corrupted (it could still be a false insertion) */
@@ -156,22 +183,102 @@ class Sudoku {
 	/* insert element set left elements -1, set last set element*/
 	Grid[xpos][ypos] = value;
 	left--;
-	lastx = xpos;
-	lasty = ypos;
+        lastinsert = new Point(xpos,ypos);
 	return true;
     }
 
-    /* creates a deepcopy of the current sudoku.
-     * this is needed when we try possibilites and want to go back.
-     * lets consider a copy functions as opposed to a delete function:
-     * for a 6x6 sudoku, we have 1296 elements. even if made
-     * a copy for trying each element, we would still get only
-     * about 2 million elements, plus extended info, minus
-     * the fact that we wont make that many trials 
-     * we would probably never use more than 10 MB, which i find still ok
-     * so therefore this is much easier and still reasonably fast - everytime
-     * there are multiple possibilities (when the logic-part of the algo fails),
-     * the sudoku gets saved and solved with each possibility */
+    /* delete method
+     * deletes last inserted element one of the elements and updates all data */
+    public void delete(int x, int y){
+	/* reset how many elements are left */
+	left++;
+	/* remember deleted */
+	int deleted = Grid[x][y];
+	/* set flag */
+	flags.set(x,y,deleted,true);
+	/* set possibilities in groups of element to one for deleted value */
+	rows[y].set(deleted,rows[y].getpossibility(deleted)+1);
+	columns[x].set(deleted,columns[x].getpossibility(deleted)+1);
+	blocks[xytoblock(x,y)].set(deleted,blocks[xytoblock(x,y)].getpossibility(deleted)+1); /**/				    
+	/* delete element */
+	Grid[x][y] = 0;
+	/* go through flags of element and check whether value is unset
+	 * in all groups of deleted element, set flag if yes */
+	for (int n=1; n<=N; n++){
+	    if ((rows[y].getpossibility(n)!=0)
+		&&(columns[x].getpossibility(n)!=0)
+		&&(blocks[xytoblock(x,y)].getpossibility(n)!=0)
+		&&(!flags.get(x,y,n))){
+		flags.set(x,y,n,true);
+		/* increase possibility in groups */
+		rows[y].set(n,rows[y].getpossibility(n)+1);
+		columns[x].set(n,columns[x].getpossibility(n)+1);
+		blocks[xytoblock(x,y)].set(n,blocks[xytoblock(x,y)].getpossibility(n)+1);
+	    }
+	}
+	/* go through all elements in all of elemetns groups and set the flag of deleted value
+	 * to true if they could take the value based on the 2 other goups they are in
+	 * if it is not already set (because of earlier command)
+	 * and that they dont have a value
+	 */
+	/* row */
+	for (int nx=0;nx<N;nx++){
+	    if (x!=nx){
+		/* check whether element can take deleted value */
+		if ((Grid[nx][y]==0)
+		    &&(columns[nx].getpossibility(deleted)!=0)
+		    &&(blocks[xytoblock(nx,y)].getpossibility(deleted)!=0)
+		    &&(!flags.get(nx,y,deleted))){
+		    /* increase possibility, set flag */
+		    flags.set(nx,y,deleted,true);
+		    rows[y].set(deleted,rows[y].getpossibility(deleted)+1);
+		    columns[nx].set(deleted,columns[nx].getpossibility(deleted)+1);
+		    blocks[xytoblock(nx,y)].set(deleted,blocks[xytoblock(nx,y)].getpossibility(deleted)+1);
+		}
+	    }
+	}
+	/* column */
+	for (int ny=0;ny<N;ny++){
+	    if (y!=ny){
+		/* check whether element can take deleted value */
+		if ((Grid[x][ny]==0)
+		    &&(rows[ny].getpossibility(deleted)!=0)
+		    &&(blocks[xytoblock(x,ny)].getpossibility(deleted)!=0)
+		    &&(!flags.get(x,ny,deleted))){
+		    /* increase possibility, set flag */
+		    flags.set(x,ny,deleted,true);
+		    columns[x].set(deleted,columns[x].getpossibility(deleted)+1);
+		    rows[ny].set(deleted,rows[ny].getpossibility(deleted)+1);
+		    blocks[xytoblock(x,ny)].set(deleted,blocks[xytoblock(x,ny)].getpossibility(deleted)+1);
+		}
+	    }
+	}
+	/* block */
+	int bx = x - x%SIZE; //offsets
+	int by = y - y%SIZE;
+	int b = xytoblock(x,y); //block
+	for (int nx=0;nx<SIZE;nx++){
+	    for (int ny=0;ny<SIZE;ny++){
+		if(((bx+nx!=x)&&(by+ny!=y))){ 
+		    if ((Grid[bx+nx][by+ny]==0)
+			&&(columns[bx+nx].getpossibility(deleted)!=0)
+			&&(rows[by+ny].getpossibility(deleted)!=0)
+			&&(!flags.get(bx+nx,by+ny,deleted))){
+			/* increase possibility, set flag */
+			flags.set(bx+nx,by+ny,deleted,true);
+			blocks[b].set(deleted,blocks[b].getpossibility(deleted)+1);
+			columns[bx+nx].set(deleted,columns[bx+nx].getpossibility(deleted)+1);
+			rows[by+ny].set(deleted,rows[by+ny].getpossibility(deleted)+1);
+		    }
+		}
+	    }
+	}
+	return;
+    }
+	
+	
+	
+    /* creates a deepcopy of the current sudoku. */
     public Object clone(){
 	Sudoku result = new Sudoku(SIZE);
 	// clone members and return result
@@ -184,10 +291,29 @@ class Sudoku {
 	    result.blocks[n] = (TGroupInfo)blocks[n].clone();
 	}
 	result.left = this.left;
-	result.lastx = this.lastx;
-	result.lasty = this.lasty;
+	result.lastinsert = (Point)this.lastinsert.clone();
+	result.lastgroupinsert = (this.lastgroupinsert==null)?null:(Point)this.lastgroupinsert.clone();
 	return result;
     }
+	
+    /* checks whether two sudokus are the same */
+    public boolean equals(Sudoku s){
+	if ((this.N != s.N)
+	    ||(this.SIZE != s.SIZE)
+	    ||(this.left != s.left) 
+	    ||(!this.flags.equals(s.flags))) return false;
+	for (int x=0;x<N;x++){
+	    if ((!rows[x].equals(s.rows[x]))
+		||(!columns[x].equals(s.columns[x]))
+		||(!blocks[x].equals(s.blocks[x]))) return false;
+	    for (int y=0;y<N;y++){
+		if (Grid[x][y] != s.Grid[x][y]) return false;
+	    }
+	}
+	return true;
+    }
+	
+	
 	
     /* the following method takes a sudoku and saves it in the current 
      * this is not a deepcopy!!
@@ -204,8 +330,8 @@ class Sudoku {
 	this.N = s.N;
 	this.rows = s.rows;
 	this.SIZE = s.SIZE;
-	this.lastx = s.lastx;
-	this.lasty = s.lasty;
+	this.lastinsert = (Point)s.lastinsert.clone();
+	this.lastgroupinsert = (s.lastgroupinsert!=null)?(Point)s.lastgroupinsert.clone():null;
     }
 
 	
@@ -320,20 +446,26 @@ class Sudoku {
 		if (sum!=blocks[b].getpossibility(n)) return false;
 	    }
 	}
-	/* check whether groupinfos match itself */
-	/* row */
-	for (int gi=0;gi<N;gi++){
-	    int l=N,v=0;
-	    for (int n=1;n<=N;n++){
-		if (rows[gi].getpossibility(n)<l){
-		    l = rows[gi].getpossibility(n);
-		    v = n;
-		}
+	/* debug - check whether all set elements have 0 cardinality - 0 possibilities */
+	for (int x=0; x<N; x++){
+	    for (int y=0; y<N; y++){
+		if ((Grid[x][y]!=0)&&(flags.getcardinality(x,y)!=0))
+		    System.out.print("match error at "+x+","+y+"\n");
 	    }	
-	    if ((v!=rows[gi].getlowestindex())||(v!=rows[gi].getpossibility(l))) return false;
+	}/* */		
+	/* check flags by checking whether each elements' possibility
+	 * is possible in each of its groups */
+	for (int x=0;x<N;x++){
+	    for (int y=0;y<N;y++){
+		for (int n=1;n<=N;n++){		
+		    if ((flags.get(x,y,n))
+			&&(rows[y].getpossibility(n)==0)
+			&&(columns[x].getpossibility(n)==0)
+			&&(blocks[xytoblock(x,y)].getpossibility(n)==0))
+			return false;
+		}
+	    }
 	}
-		
-
 	return true;
     }
 	
@@ -372,7 +504,7 @@ class Sudoku {
 	    rows[i] = new TGroupInfo(N);
 	    for (int j = 0; j < N; j++){
 		Grid[i][j] = 0;
-		/* since each element has the possibility to be anything, set flags */
+		/* at the beginning since each element has the possibility to be anything, set flags */
 		for (int n=1;n<=N;n++){
 		    flags.set(i,j,n,true);
 		}
@@ -487,7 +619,8 @@ class Sudoku {
     /*
      * The main function reads in a Sudoku puzzle from the standard input,
      * unless a file name is provided as a run-time argument, in which case the
-     * Sudoku puzzle is loaded from that file. It then solves the puzzle, and
+     * Sudoku puzzle is loaded from that file. It is also possible to load the
+     * Sudoku by typing "0 <filename>" in stdin. It then solves the puzzle, and
      * outputs the completed puzzle to the standard output.
      */
     public static void main(String args[]) throws Exception {
@@ -515,68 +648,23 @@ class Sudoku {
 
 	// read the rest of the Sudoku puzzle
 	s.read(in);
-	/*s.insert(1,1,1);
-	  s.insert(0,0,2);
-	  s.insert(0,2,3);
-	  s.insert(3,4,2);
-	  s.insert(4,4,3);
-	*/
         // Solve the puzzle. We don't currently check to verify that the puzzle
 	// can be
 	// successfully completed. You may add that check if you want to, but it
 	// is not
-	// necessary.
-        int b4 = s.left;
-	//s.solve();
+	// necessary
 	s.print();
+	System.out.print("solving\n");
+        int b4 = s.left;
+        long t = s.solve();
+	// Print out the (hopefully completed!) puzzle
+        s.print();
 	System.out.print("before, after  "+b4+" "+s.left+"\n");
 	System.out.print("sudoku "+(s.isvalid()?"is valid":"is not valid")+"\n");
 	System.out.print("sudoku "+(s.checkintegrity()?"is integer":"is not integer")+"\n");
-
-	// Print out the (hopefully completed!) puzzle
-	// s = (Sudoku)s.clone();
-	/* print possibilites for first line
-	   for (int n=0; n<s.N; n++)
-	   s.printpossibilites(n,0);
-	   /* */
-	/*check whether blockcoordinates are right
-	  for (int x=0; x<s.N; x++){
-	  for (int y=0; y<s.N; y++){
-			  
-				
-	  if (s.blocktox(s.xytoblock(x,y))!=x-x%s.SIZE)
-	  System.out.print("x error at "+x+","+y+"\n");
-	  if (s.blocktoy(s.xytoblock(x,y))!=y-y%s.SIZE)
-	  System.out.print("y error at "+x+","+y+"\n");
-	  }	
-	  System.out.print(s.blocktox(x)+",");
-	  System.out.print(s.blocktoy(x)+"\n");
-	  System.out.print(s.xytoblock(s.blocktox(x),s.blocktoy(x))+" at "+x+"\n");
-			
-	  }/* */
-	/* debug - check whether all set elements have 0 cardinality - 0 possibilities
-	   for (int x=0; x<s.N; x++){
-	   for (int y=0; y<s.N; y++){
-	   if ((s.Grid[x][y]!=0)&&(s.flags.getcardinality(x,y)!=0))
-	   System.out.print("match error at "+x+","+y+"\n");
-	   }	
-	   }/* */
-	/* check validity algorithms
-	   System.out.print("sudoku "+(s.isvalid()?"is valid":"is not valid")+"\n");
-	   s.insert(3,0,1);
-	   System.out.print("sudoku "+(s.isvalid()?"is valid":"is not valid")+"\n");		
-	   /* */
-	/* find millisecons how long it takes to make a thousand deepcopies
-	   long ms = System.currentTimeMillis();
-	   s = new Sudoku(8);
-	   for (int n=0;n<1000;n++){
-	   s = (Sudoku)s.clone();
-	   }
-	   ms = System.currentTimeMillis() - ms;
-	   System.out.print("1000 sudoku copies of 8x8: "+ms+"ms/n");
-	   /* */
-		
-		
+	System.out.print("It took "+t+" Miliseconds!\n");
+	System.out.print("totalnext: "+s.totalnext+" totalbranch: "+s.totalbranch+"\n");
+	System.out.print("Elementdecisions: "+s.elementdecisions+" Valuedecisions: "+s.valuedecisions+"\n");
 	return;
     }
 }
@@ -592,11 +680,9 @@ class Sudoku {
  * if there is only one candidate, than we can be sure the one is part of the solution
  */
 class TCandidates{
-    /* the value that all candidates are candidates for */
-    int value=0;
 	
     /* the candidates */
-    ArrayList elements; //they are of type Point	
+    ArrayList elements; //they are of type TCandidate	
 	
     /* this is kind of like an 'enum', there are variables in the code deciding whether a group is
      * s block, row or column - these are their values */
@@ -604,10 +690,104 @@ class TCandidates{
     static final int COLUMN = 1;
     static final int BLOCK = 2;	
 
-    /* Constructor creates the candidates from Sudoku*/
+    /* Constructor creates the candidates from Sudoku*/ 
     public TCandidates(Sudoku s){
-	/* find group with lowest possibility - highest certainty for certain value - and what value that is*/
-	int groupindex=0, lowestposs=s.N, grouptype=ROW;
+	/* find value with least number of elements that can take it within that group */
+	Tgroupcandidate can = findlowestpossibility(s);
+	/* if we got a sure candidate, just return that */
+	if (can.possibilities == 1){
+	    this.makepossibilitylist(s,can.gtype,can.groupindex,can.value);
+	    return;
+	}
+		
+	/* find element with least possibilities */
+	Point lowc = this.findlowcardcandidate(s);
+
+	/* compare the number of possibilities that we have through groupbased and cardinalitybased
+	 * reduction, make list accordingly
+	 */
+	if (can.possibilities>s.flags.getcardinality(lowc.x,lowc.y)){
+	    /* one element taking different values make the candidatelist */
+	    if (s.flags.getcardinality(lowc.x,lowc.y) != 1) s.elementdecisions++;//performance test
+	    int xpos = lowc.x; int ypos = lowc.y;
+	    /* make a list */
+	    /* probablity for each value is the least number of possibilities in one of the groups */
+	    elements = new ArrayList();
+	    for (int n = 1; n<=s.N;n++){
+		if (s.flags.get(xpos,ypos,n)){
+		    elements.add(new TCandidate(xpos,ypos,n,
+						min(s.rows[ypos].getpossibility(n),
+						    s.columns[xpos].getpossibility(n),
+						    s.blocks[s.xytoblock(xpos,ypos)].getpossibility(n))));
+		}
+	    }
+	    ordercandidates();
+	    return;
+	} else{
+	    /* many elements taking one value make the candidatelist */
+	    s.valuedecisions++; //performance test
+	    this.makepossibilitylist(s,can.gtype,can.groupindex,can.value);
+	    return;
+	}
+    }//end of constructor
+ 
+	
+    /* find in how many same groups two elements are */
+    private int samegroups(Sudoku s,int x1, int y1, int x2, int y2){
+	int result =0; 
+	if (x1==x2) result++;
+	if (y1==y2) result++;
+	if (s.xytoblock(x1,y1)==s.xytoblock(x2,y2)) result ++;
+	return result;
+    }	
+	
+	
+    /* orders candidate list according to probablity */
+    private void ordercandidates(){
+	int n;
+	ArrayList ordered = new ArrayList();
+	for (int m=0; m<elements.size();m++){
+	    TCandidate cur = (TCandidate)elements.get(m);
+	    //find position to insert
+	    for (n=0;((n<ordered.size())&&(cur.invprobablity<((TCandidate)ordered.get(n)).invprobablity));n++);
+	    ordered.add(n,cur);
+	}
+	elements = ordered;
+    }
+	
+	
+    /* find element with lowest cardinality 
+     * tries to find one with cloes proximit to last set element*/
+    private Point findlowcardcandidate(Sudoku s){
+	int lowestc=s.N,xpos=0,ypos=0,ingroups=0;
+	/* find element with lowest cadinality */
+	for (int x=0;x<s.N;x++){
+	    for (int y=0;y<s.N;y++){
+		if ((s.flags.getcardinality(x,y)<lowestc)&&(s.flags.getcardinality(x,y)!=0)){
+		    lowestc = s.flags.getcardinality(x,y);
+		    xpos = x;
+		    ypos = y;
+		    ingroups = samegroups(s,x,y,s.lastinsert.x,s.lastinsert.y);
+		}
+		/*if they have the same but the found one is in more groups take that one */
+		if ((s.flags.getcardinality(x,y)==lowestc)&&(s.flags.getcardinality(x,y)!=0)){
+		    if (samegroups(s,x,y,s.lastinsert.x,s.lastinsert.y)<ingroups){
+			lowestc = s.flags.getcardinality(x,y);
+			xpos = x;
+			ypos = y;
+			ingroups = samegroups(s,x,y,s.lastinsert.x,s.lastinsert.y);							
+		    }
+		}
+	    }	
+	}	
+	return new Point(xpos,ypos);
+    }
+	
+    /* the following function finds the group and value with the lowest possible elements that 
+     * can take that value
+     */
+    private Tgroupcandidate findlowestpossibility(Sudoku s){
+	int groupindex=0, lowestposs=s.N, grouptype=ROW, value = 0;
 	/* grouptype uses above constants, value refers to the value an element in Sudoku can take */
 	/* check row, column, block */
 	for (int gtype = ROW;gtype <=BLOCK; gtype++){ /* go through all grouptypes */
@@ -616,80 +796,65 @@ class TCandidates{
 	    /* loop through groupinfos and set new lowest poss */
 	    for (int n=0;n<s.N;n++){
 		/* reset lowest possibility if lower found */
-		if (groups[n].getlowestpossibility()<lowestposs){
-		    lowestposs = groups[n].getlowestpossibility();
-		    value      = groups[n].getlowestindex();
+		Point cur = groups[n].getlowestpossibility();
+		//x lowest possibility, y is which value that refers to
+		if (cur.x == 0) System.out.print("POSIBILITY WRONG - 0!!!");
+		if (cur.x<lowestposs){
+		    lowestposs = cur.x;
+		    value      = cur.y;
 		    grouptype  = gtype;
 		    groupindex = n;
 		}
-		/* if they are the same but the found one refers to the same value as the last one
-		 * choose that one - this way i hope to find it faster, when we pursue wrong branch
-		 if (groups[n].getlowestpossibility()==lowestposs){
-		 if (((gtype==ROW)&&(s.lasty == n))
-		 ||((gtype==COLUMN)&&(s.lastx == n))
-		 ||((gtype==BLOCK)&&(s.xytoblock(s.lastx,s.lasty) == n))){
-		 lowestposs = groups[n].getlowestpossibility();
-		 value      = groups[n].getlowestindex();
-		 grouptype  = gtype;
-		 groupindex = n;
-		 }
-		 }/**/
-		/* if they are the same but found refers to same value choose that one */
-		if ((groups[n].getlowestpossibility()==lowestposs)&&
-		    (s.Grid[s.lastx][s.lasty]==groups[n].getlowestindex())){
-		    lowestposs = groups[n].getlowestpossibility();
-		    value      = groups[n].getlowestindex();
-		    grouptype  = gtype;
-		    groupindex = n;					
+		/* if they are the same but the found one refers to the same value as the last set one
+		 * choose that one - this way i hope to find it faster, when we pursue wrong branch */
+		if (cur.x==lowestposs){
+		    if (((gtype==ROW)&&(s.lastinsert.y == n))
+			||((gtype==COLUMN)&&(s.lastinsert.x == n))
+			||((gtype==BLOCK)&&(s.xytoblock(s.lastinsert.x,s.lastinsert.y) == n))){
+			lowestposs = cur.x;
+			value      = cur.y;
+			grouptype  = gtype;
+			groupindex = n;
+		    }
 		}
 	    }
-	}
-	/* make list */
-	elements = makelist(s,groupindex,grouptype,value);
-    }//end of constructor
-
-				
-    /* the following function takes a group and a value (which has the lowest possibility in that grou)
+	} 		
+	return new Tgroupcandidate(grouptype,groupindex,value,lowestposs);
+    }
+	
+	
+    /* the following function takes a group and a value (which has the lowest possibility in that group)
      * and makes the list of Candidates
+     * they are sorted by cardinality
      */
-    private ArrayList makelist(Sudoku s, int groupindex, int grouptype, int value){
+    private void makepossibilitylist(Sudoku s, int grouptype, int groupindex, int value){
 	/* find the elements (within that group) that have this value in their possibilities
-	 *  and store temporarily in stack*/
-	ArrayList elements = new ArrayList();
-	Stack stack = new Stack();
+	 *  and store in list with cardinality (number of possibilities for element)
+	 *  as inverse probability*/
+	elements = new ArrayList();
 	switch (grouptype){
 	case ROW:	{for (int x=0;x<s.N;x++){ //the groupindex of row is the y-value
 		    if (s.flags.get(x,groupindex,value))
-			stack.add(new Point(x,groupindex));
+			elements.add(new TCandidate(x,groupindex,value,s.flags.getcardinality(x,groupindex)));
 		}break;}
 	case COLUMN:{for (int y=0;y<s.N;y++){ //the groupindex of the column is the x-value
 		    if (s.flags.get(groupindex,y,value))
-			stack.add(new Point(groupindex,y));
+			elements.add(new TCandidate(groupindex,y,value,s.flags.getcardinality(groupindex,y)));
 		}break;}			 
 	case BLOCK:	{for (int x=s.blocktox(groupindex);x<s.blocktox(groupindex)+s.SIZE;x++){
 		    for (int y=s.blocktoy(groupindex);y<s.blocktoy(groupindex)+s.SIZE;y++){
 			if (s.flags.get(x,y,value))
-			    stack.add(new Point(x,y));
+			    elements.add(new TCandidate(x,y,value,s.flags.getcardinality(x,y)));
 		    }
 		}break;}			 
 	}
-	/* find the inverse probability for each element and order them accordingly */
-	Point cur; TCandidate candidate; int n;
-	while (!stack.isEmpty()){
-	    /* retrieve point */
-	    cur = (Point)stack.pop();
-	    /* find inverse probablity, 
-	     * I define it as the number of possibilities the element has
-	     * because the probability that an element should take a certain value is
-	     * the inverse of the number of possibilites */
-	    candidate = new TCandidate(cur.x,cur.y,value,s.flags.getcardinality(cur.x,cur.y));
-	    /* insert with at right position */
-	    for (n=0;
-		 ((n<elements.size())
-		  &&(((TCandidate)elements.get(n)).invprobablity<candidate.invprobablity));n++);
-	    elements.add(n,candidate);
-	}		
-	return elements;
+	this.ordercandidates();
+    }
+	
+    /* little support function, returns smallest of given arguments */
+    private int min(int a,int b,int c){
+	int t = (a<b?a:b);
+	return (c<t?c:t);
     }
 				
     /* Methods for accessing the candidates */
@@ -705,8 +870,8 @@ class TCandidates{
     public int getinvprobability(int index){
 	return ((TCandidate)elements.get(index)).invprobablity;
     }
-    public int getvalue(){
-	return value;
+    public int getvalue(int index){
+	return ((TCandidate)elements.get(index)).value;
     }
 }
 		
@@ -719,14 +884,18 @@ class TCandidate{
     	this.x = x; this.y = y; this.value = value; this.invprobablity = invprobablity;
     }
 }
-		
 
 
-
-
-
-
-
+/* this tiny class represents the number of possibilities for a value to be taken
+ * by an element (how many elements can take a specific value) within one specific group
+ */
+class Tgroupcandidate{
+    int gtype, groupindex, value, possibilities;
+    public Tgroupcandidate(int gtype, int groupindex, int value, int possibilities){
+	this.gtype = gtype; this.groupindex = groupindex; this.value = value;
+	this.possibilities = possibilities;
+    }
+}
 
 
 
