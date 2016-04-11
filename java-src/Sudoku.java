@@ -15,6 +15,12 @@
  * number of elements can take that value.
  * The algorithm decides then which of both ways lead to a decision with fewer possible
  * candidates.
+ * 
+ * the two other public classes represent these two ideas. the one saves how many
+ * elements could take a value in each group.
+ * the other saves for each element what values it could take.
+ * 
+ * its a mess, but it works.
  *
  */
 import java.util.*;
@@ -83,8 +89,6 @@ class Sudoku {
      * returns true when solution was found and set
      */
     private boolean next() {
-	if (!checkintegrity())
-	    System.out.print("INVALID SUDOKU");
 	/* return true if there is no element to set */	
 	if (left == 0)return true;
 	/* perforamance */
@@ -136,7 +140,8 @@ class Sudoku {
 	}
 	/* 2nd - check whether the value we want to enter is in that elements possibilites */
 	if (!flags.get(xpos,ypos,value)){
-	    System.out.print("invalid assign!!");
+	    System.out.print("invalid assign!! Cant assign "+xpos+" "+ypos+" "+value+"\n");
+	    print();
 	    System.out.print("sudoku "+(isvalid()?"is valid":"is not valid")+"\n");
 	    System.out.print("sudoku "+(checkintegrity()?"is integer":"is not integer")+"\n");
 	    return false;
@@ -293,6 +298,10 @@ class Sudoku {
 	result.left = this.left;
 	result.lastinsert = (Point)this.lastinsert.clone();
 	result.lastgroupinsert = (this.lastgroupinsert==null)?null:(Point)this.lastgroupinsert.clone();
+	result.elementdecisions = this.elementdecisions;
+	result.totalbranch = this.totalbranch;
+	result.totalnext = this.totalnext;
+	result.valuedecisions = this.valuedecisions;
 	return result;
     }
 	
@@ -332,7 +341,12 @@ class Sudoku {
 	this.SIZE = s.SIZE;
 	this.lastinsert = (Point)s.lastinsert.clone();
 	this.lastgroupinsert = (s.lastgroupinsert!=null)?(Point)s.lastgroupinsert.clone():null;
+	this.elementdecisions = s.elementdecisions;
+	this.totalbranch = s.totalbranch;
+	this.totalnext = s.totalnext;
+	this.valuedecisions = s.valuedecisions;
     }
+	
 
 	
     /* the following method takes one element in the grid and eliminates the 
@@ -480,7 +494,7 @@ class Sudoku {
      *  - constructor
      *  - using insert when reading sudoku
      *  - changed handling of sudoku so that grid is only addressed with x,y
-     * 
+     *  - play around with main function
      */
 
     /*
@@ -624,9 +638,11 @@ class Sudoku {
      * outputs the completed puzzle to the standard output.
      */
     public static void main(String args[]) throws Exception {
-	InputStream in;
-	if (args.length > 0)
+	InputStream in;String name = "stdin";
+	if (args.length > 0){
 	    in = new FileInputStream(args[0]);
+	    name = args[0];
+	}
 	else
 	    in = System.in;
 
@@ -635,7 +651,8 @@ class Sudoku {
 	// the example files for the file format.
 	int puzzleSize = readInteger(in);
 	if (puzzleSize == 0) {
-	    in = new FileInputStream(readWord(in));
+	    name = readWord(in);
+	    in = new FileInputStream(name);
 	    puzzleSize = readInteger(in);
 	}
 	if (puzzleSize > 8 || puzzleSize < 1) {
@@ -653,13 +670,20 @@ class Sudoku {
 	// successfully completed. You may add that check if you want to, but it
 	// is not
 	// necessary
-	s.print();
-	System.out.print("solving\n");
         int b4 = s.left;
         long t = s.solve();
-	// Print out the (hopefully completed!) puzzle
+
+        /* This is for silent mode
+	   if (s.left != 0) System.out.print("Solved with "+s.left+" left\n");
+	   else if (!s.isvalid()) System.out.print("Result not valid!\n");
+	   else if (!s.checkintegrity()) System.out.print("Result not integer!\n");
+	   else System.out.print(name+": "+(t)+" ms - inserted: "+(b4-s.left)+", totalnext: "+s.totalnext+", totalbranch: "+s.totalbranch+"\n");
+	   System.out.print("Elementdecisions: "+s.elementdecisions+" Valuedecisions: "+s.valuedecisions+"\n");
+	   /**/
+
+	// Print out the (hopefully completed!) puzzle - and some other information
         s.print();
-	System.out.print("before, after  "+b4+" "+s.left+"\n");
+        System.out.print("before, after  "+b4+" "+s.left+"\n");
 	System.out.print("sudoku "+(s.isvalid()?"is valid":"is not valid")+"\n");
 	System.out.print("sudoku "+(s.checkintegrity()?"is integer":"is not integer")+"\n");
 	System.out.print("It took "+t+" Miliseconds!\n");
