@@ -422,7 +422,20 @@ class Sudoku {
        	}
 	return true;
     }
+    
+    /* check whether sudoky is solved -- it's valid and all entries are not 0 */
+    boolean issolved(){
+	if (!isvalid())
+	    return false;
+    	
+	for (int y=0; y<N; y++)
+       	    for (int x=0; x<N-1; x++)
+		if (Grid[x][y]==0)
+		    return false;
 	
+	return true;
+    }
+    
     /* check integrity of data 
      * check whether flaginfo matches group info
      */
@@ -684,11 +697,18 @@ class Sudoku {
 	// Print out the (hopefully completed!) puzzle - and some other information
         s.print();
         System.out.print("before, after  "+b4+" "+s.left+"\n");
-	System.out.print("sudoku "+(s.isvalid()?"is valid":"is not valid")+"\n");
+	boolean valid = s.isvalid();
+	System.out.print("sudoku "+(valid?"is valid":"is not valid")+"\n");
+	boolean solved = s.issolved();
+	System.out.print("sudoku "+(solved?"is solved":"is not solved")+"\n");
 	System.out.print("sudoku "+(s.checkintegrity()?"is integer":"is not integer")+"\n");
 	System.out.print("It took "+t+" Miliseconds!\n");
 	System.out.print("totalnext: "+s.totalnext+" totalbranch: "+s.totalbranch+"\n");
 	System.out.print("Elementdecisions: "+s.elementdecisions+" Valuedecisions: "+s.valuedecisions+"\n");
+
+	if (!valid || !solved) {
+	    System.exit(1);
+	}
 	return;
     }
 }
