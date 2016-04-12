@@ -45,7 +45,11 @@ def solveSudoku(sudoku):
     print problem
 
     # solve the lp
-    solver = pulp.COIN_CMD()
+    options = {
+        'msg' : True,
+        'options' : ['presolve more', 'passpresolve 50',]
+    }
+    solver = pulp.COIN_CMD(**options)
     if not solver.available():
         solver = pulp.PULP_CBC_CMD(**options)
     if not solver.available():
