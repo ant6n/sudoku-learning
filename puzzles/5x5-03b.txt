@@ -1,0 +1,33 @@
+5
+
+20  x  x  x 18 |  x  x  4  x  9 |  1 19  2  7 25 | 10  x  x  x 24 |  8  x 12  x  x 
+ 1 12 22  5  x |  x 17  x  2 25 |  x  x 21 20  x |  x 18 23  x  x |  3  x 19  9  x 
+ x  x  6 25  x | 15  x 14 19  x |  4  x  x  x  8 |  1 13  x 11  x | 18 17  x  x  x 
+ x  x  x 11  x |  x 13  x  1  7 |  x  x  x 16 17 | 20  x  2  4  x |  x  x  x  5  x 
+19  x  3  x  x | 24  x 20  x  x |  x 12  x  x  x | 25  x  x  x  x |  x 23  x 10  x 
+-----------------------------------------------------
+ x 22 17 20  x |  x 18  x  x  x | 11  x  1  x  x |  x  x  x  x 16 | 24  x  8 21  5 
+ x  x  x  x  x |  x  x 22 17  x |  x 16 10  x 20 |  x  x  x 12 18 | 15  x  x 11  x 
+ x  3  x  x  x | 25 12  x  x  8 |  x  9 18 21  x | 17  x 20  x  x | 16  x 22  7 23 
+11  x  x 23  1 |  x 24  x  x  x |  x  5  x  x  x |  2  x  x  x  4 |  x  x  x 17  3 
+16 13  x  x  2 |  4  x  5  x 23 | 25  x  8  x  x |  x 22  x  x  x | 14  x 20  1  x 
+-----------------------------------------------------
+ x  x  1  2  5 |  9  x 12  x 17 |  x  x 14  x  x |  8  7  x  x  x |  x 19  6  x  x 
+13 18  x  x 20 |  6  2  7  5  x |  x 23 16  1  x | 22  x  x 15 17 |  x 14  9  x  x 
+ 6 23 16  9  x |  x  x 21  x  x | 15  x 22  x  7 |  x  x 13  x  x |  x  5  4  3 25 
+ x  x 10  3  x | 22  1  x  x 18 |  x 21  9 25  x |  x 23 19  6  5 | 13  x  x  2 16 
+ x  x 11 12  x |  x  x  x 25 14 |  x  x  5  x  x | 21  x  4  x 10 | 17  1  7  x  x 
+-----------------------------------------------------
+ x  4 18  x 12 |  x  x  x 13  x |  x  x 25  x  9 | 24  x 10  x 21 | 22  x  x 14 15 
+22 25  x  x  x | 23  x  x  x 21 |  x  x  x  5  x |  x  x  x  9  x |  2  8  x  x 17 
+ 5 19 21  x  9 |  x  x 25  x 22 |  x 14 11 13  x |  3  x  x 17  2 |  x  x  x 16  x 
+ x 11  x  x 24 |  8 14  x  x  x |  2  x 12 19  x |  x 25  7  x  x |  x  x  x  x  x 
+14  1 15  x  8 | 17  x  x  x  x |  x  x 20  x 23 |  x  x  x 13  x |  x 12 10 25  x 
+-----------------------------------------------------
+ x 14  x 19  x |  x  x  x  x  1 |  x  x  x  8  x |  x  x  9  x 11 |  x  x  5  x 24 
+ x  9  x  x  x |  x 20 24  x  6 | 14  2  x  x  x |  7 16  x  5  x |  x 21  x  x  x 
+ x  x  x 22 16 |  x 25  x  8 12 |  7  x  x  x 11 |  x  6 17  x 14 |  x 18 23  x  x 
+ x 10 24  x  6 |  x  x 23  9  x |  x  1 17  x  x | 12 20  x 22  x |  x  4 14 13 11 
+ x  x  7  x 21 | 19  x  x  x 15 |  5 20 13 10 24 | 18  x 25  x  x |  9  x  x  x 22 
+
+(5x5 Sudoku puzzle from www.menneske.no/sudoku/5/eng/)

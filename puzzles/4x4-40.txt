@@ -1,0 +1,22 @@
+4
+
+ 3  6  x  x |  x  x 12  2 |  x  x  x  x |  x  x  4  x 
+ x  x  7  2 |  x  x  5  x |  x  6  x  x |  x  x  x 12 
+ x  x  x  x |  x  8  x 13 |  1  x  x  4 |  6  x  9  x 
+ x  x  x  x |  x 15  x  x |  x  x  x  8 |  7 16  x  x 
+-----------------------------------------------------
+ x  x  9  x |  x 14  6  5 |  x  x  x  x |  x  x  x  x 
+ x 11  x  x |  4 16  x  x |  x  x  x  x | 14  7  3  x 
+ x  x  x 12 |  x  x 15  x |  2  x  x  9 |  x 10  x  x 
+ x  x  8  x | 13  x  x  x |  x  x  x 10 | 15  x  5  x 
+-----------------------------------------------------
+ 7 14  x  8 |  x 13  1  x |  x 16  5  x |  4  6  x  x 
+13  x 16  x |  9  x  x  4 |  x  2  x  x | 10  x  x  x 
+ x  x  x  5 |  x  x  x  x | 15  x  x  x |  1 14  x  x 
+ 6  1  x  x |  x  x  x 16 |  3  x  x 12 |  x 15  x  x 
+-----------------------------------------------------
+ x  x 13  x |  x  x  x  8 |  x  x 14  x |  x  x  x  x 
+ x 16  x  6 |  x  x  x  x |  8  5  x  3 |  9  1  x 11 
+ x  x  x  x |  3  x 16  9 |  x 11  7  x |  x  x  2  5 
+ 2  x  3  x | 10  7  x  x |  x  9  4  x |  x  x  x  x 
+  From http://magictour.free.fr/ top46

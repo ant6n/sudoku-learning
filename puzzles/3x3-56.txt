@@ -1,0 +1,14 @@
+3
+
+5 3 x | x 2 x | 9 x x 
+x 2 4 | x 3 x | x 5 x 
+x x 9 | x x x | x x x 
+---------------------
+x x x | x 1 x | 8 2 7 
+x x x | 7 x x | x x x 
+x x x | x 9 8 | 1 x x 
+---------------------
+x x x | x x x | x x x 
+x x 6 | 4 x x | x x 9 
+1 x 2 | x 5 x | 4 3 x 
+ From http://magictour.free.fr/ top95
